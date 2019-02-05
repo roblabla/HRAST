@@ -5,11 +5,14 @@ import sys
 import re
 import importlib
 import idaapi
+import idc
+import idautils
 idaapi.require("Patterns")
 idaapi.require("Matcher")
 idaapi.require("ast_helper")
 idaapi.require("traverse")
 import ready_patterns
+import ida_hexrays
 
 EVENTS_HEXR = {
     0: 'hxe_flowchart',
@@ -114,10 +117,23 @@ def hexrays_events_callback_m(*args):
             apply_on_fn(fcn)
     return 0
 
+def apply_everywhere():
+    hr_remove()
+    for segea in idautils.Segments():
+        for funcea in idautils.Functions(segea, idc.SegEnd(segea)):
+            print("Handling %s" % idc.GetFunctionName(funcea))
+            try:
+                cfunc = ida_hexrays.decompile(funcea)
+                apply_on_fn(cfunc)
+            except ida_hexrays.DecompilationFailure as e:
+                print("Failed to decompile!")
+    hr_install()
 
 def hr_remove():
     idaapi.remove_hexrays_callback(hexrays_events_callback_m)
 
+def hr_install():
+    return idaapi.install_hexrays_callback(hexrays_events_callback_m)
 
-if __name__ == "__main__":    
-    print idaapi.install_hexrays_callback(hexrays_events_callback_m)
+if __name__ == "__main__":
+    print hr_install()
