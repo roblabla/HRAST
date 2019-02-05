@@ -3,8 +3,22 @@
 from ast_helper import *
 import idaapi
 import ida_name
+import ida_xref
+import idc
 
-EXPR_PATTERNS = []
+find_global_write = """Patterns.ObjBind("written")
+"""
+
+def xref_global(node, ctx):
+    var = ctx.get_obj("written")
+    print("%x at %x" % (var.addr, node.ea))
+    # Terrible check to see if we're in a function
+    if idc.get_func_flags(var.addr) == -1:
+        ida_xref.add_dref(node.ea, var.addr, ida_xref.XREF_USER)
+    return False
+
+PATTERNS = []
+EXPR_PATTERNS = [(find_global_write, xref_global, False)]
 
 strlen_global = """Patterns.ChainPattern([
     Patterns.ExprInst(Patterns.AsgnExpr(Patterns.VarBind("t1"), Patterns.ObjBind("strlenarg"))),
@@ -48,7 +62,7 @@ def replacer_strlen_global(idx, ctx):
     return True
 
 # Third arg - is chain
-PATTERNS = [(strlen_global, replacer_strlen_global, True)]
+# PATTERNS = [(strlen_global, replacer_strlen_global, True)]
 
 #=======================================
 # This pattern is works with following case
@@ -208,7 +222,7 @@ def test_xx(idx, ctx):
         return False
     return True
 
-PATTERNS = [(test_deep, test_xx, False), (test_deep_without_cast, test_xx, False)]
+#PATTERNS = [(test_deep, test_xx, False), (test_deep_without_cast, test_xx, False)]
 
 
 str_asgn = """Patterns.ExprInst(
@@ -252,4 +266,4 @@ def xx(inst, ctx):
 
             ret += GLOBAL[i]
     print ret
-PATTERNS = [(str_asgn, xx, False)]
+#PATTERNS = [(str_asgn, xx, False)]
