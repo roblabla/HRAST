@@ -4,6 +4,8 @@ from ast_helper import *
 import idaapi
 import ida_name
 
+EXPR_PATTERNS = []
+
 strlen_global = """Patterns.ChainPattern([
     Patterns.ExprInst(Patterns.AsgnExpr(Patterns.VarBind("t1"), Patterns.ObjBind("strlenarg"))),
     Patterns.DoInst(Patterns.LnotExpr(Patterns.VarBind("t2")),Patterns.BlockInst([

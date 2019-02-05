@@ -54,28 +54,54 @@ LEV = 0
 NAME = 'log'
 
 used_pats = []
+used_expr_pats = []
 DEBUG = False
 
 
 def reLOAD():
     global used_pats
+    global used_expr_pats
     # For tesing now I just rewrite "ready_patterns.py" and call reLOAD
     reload(ready_patterns)
     used_pats = []
     for i in ready_patterns.PATTERNS:
         print i[0]
         used_pats.append((eval(i[0], globals(), locals()), i[1], i[2]))
+    for i in ready_patterns.EXPR_PATTERNS:
+        print i[0]
+        used_expr_pats.append((eval(i[0], globals(), locals()), i[1], i[2]))
 
 
 def unLOAD():
     global used_pats
     used_pats = []
+    global used_expr_pats
+    used_expr_pats = []
 
 
 def deBUG():
     global DEBUG
     DEBUG = not DEBUG
 
+def apply_on_fn(fcn):
+    for i in used_pats:
+        func_proc = traverse.FuncProcessor(fcn)
+        matcher = Matcher.Matcher(func_proc.fcn, None)
+        matcher.set_pattern(i[0])
+        matcher.chain = i[2]
+        matcher.replacer = i[1]
+        func_proc.pattern = matcher
+        func_proc.DEBUG = DEBUG
+        func_proc.traverse_function()
+    for i in used_expr_pats:
+        func_proc = traverse.FuncProcessor(fcn)
+        matcher = Matcher.Matcher(func_proc.fcn, None)
+        matcher.set_pattern(i[0])
+        matcher.chain = i[2]
+        matcher.replacer = i[1]
+        func_proc.expression_pattern = matcher
+        func_proc.DEBUG = DEBUG
+        func_proc.traverse_function()
 
 def hexrays_events_callback_m(*args):
     global LEV
@@ -85,15 +111,7 @@ def hexrays_events_callback_m(*args):
         fcn = args[1]
         level = args[2]
         if level == idaapi.CMAT_FINAL:
-            for i in used_pats:
-                func_proc = traverse.FuncProcessor(fcn)
-                matcher = Matcher.Matcher(func_proc.fcn, None)
-                matcher.set_pattern(i[0])
-                matcher.chain = i[2]
-                matcher.replacer = i[1]
-                func_proc.pattern = matcher
-                func_proc.DEBUG = DEBUG
-                func_proc.traverse_function()
+            apply_on_fn(fcn)
     return 0
 
 

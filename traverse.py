@@ -26,39 +26,39 @@ class FuncProcessor(object):
         if opname == "block":
             return node.cblock
         elif opname == "expr":
-            self.traverse_expr(node.cexpr, shift + 1)
+            self.traverse_expr(node.cexpr, shift + 1, node)
             return []
         elif opname == "if":
             retval = []
-            self.traverse_expr(node.cif.expr, shift + 1)
+            self.traverse_expr(node.cif.expr, shift + 1, node)
             if node.cif.ithen is not None:
                 retval.append(node.cif.ithen)
             if node.cif.ielse is not None:
                 retval.append(node.cif.ielse)
             return retval
         elif opname == "do":
-            self.traverse_expr(node.cdo.expr, shift + 1)
+            self.traverse_expr(node.cdo.expr, shift + 1, node)
             return [node.cdo.body]
         elif opname == "return":
-            self.traverse_expr(node.creturn.expr, shift + 1)
+            self.traverse_expr(node.creturn.expr, shift + 1, node)
             return []
         elif opname == "goto":
             if self.DEBUG:
                 print "{}[+]Goto to label num {}".format(" " * ((shift + 1) * TAB_SPACES), node.cgoto.label_num)
         elif opname == "while":
-            self.traverse_expr(node.cwhile.expr, shift + 1)
+            self.traverse_expr(node.cwhile.expr, shift + 1, node)
             return [node.cwhile.body]
         elif opname == "break":
             return []
         elif opname == "switch":
-            self.traverse_expr(node.cswitch.expr, shift + 1)
+            self.traverse_expr(node.cswitch.expr, shift + 1, node)
             for i in node.cswitch.cases:
                 self.process_case(i, shift + 1)
             return []
         elif opname == "for":
-            self.traverse_expr(node.cfor.init, shift + 1)
-            self.traverse_expr(node.cfor.expr, shift + 1)
-            self.traverse_expr(node.cfor.step, shift + 1)
+            self.traverse_expr(node.cfor.init, shift + 1, node)
+            self.traverse_expr(node.cfor.expr, shift + 1, node)
+            self.traverse_expr(node.cfor.step, shift + 1, node)
             return [node.cfor.body]
         elif opname == "empty":
             return None
@@ -156,37 +156,37 @@ class FuncProcessor(object):
         'preinc', 'predec', 'lnot', 'ref', 'bnot', 'postinc', 'postdec', 'neg', 'fneg'
     ]
 
-    def process_expr(self, exp, shift):
+    def process_expr(self, exp, shift, node):
         opname = exp.opname
         if opname == "var":
             if self.DEBUG:
                 print "{}[+] Varname: {}".format(" " * ((shift + 1) * TAB_SPACES), self.fcn.lvars[exp.v.idx].name)
         elif opname == "memptr":
-            self.traverse_expr(exp.x, shift + 1)
+            self.traverse_expr(exp.x, shift + 1, node)
             if self.DEBUG:
                 print "{}[+] Offset: {}".format(" " * ((shift + 1) * TAB_SPACES), exp.m)
                 print "{}[+] Size: {}".format(" " * ((shift + 1) * TAB_SPACES), exp.ptrsize)
         elif opname == "memref":
-            self.traverse_expr(exp.x, shift + 1)
+            self.traverse_expr(exp.x, shift + 1, node)
             if self.DEBUG:
                 print "{}[+] Offset: {}".format(" " * ((shift + 1) * TAB_SPACES), exp.m)
         elif opname == "ptr":
-            self.traverse_expr(exp.x, shift + 1)
+            self.traverse_expr(exp.x, shift + 1, node)
             if self.DEBUG:
                 print "{}[+] Size: {}".format(" " * ((shift + 1) * TAB_SPACES), exp.ptrsize)
         elif opname in FuncProcessor.TWO_OP:
-            self.traverse_expr(exp.x, shift + 1)
-            self.traverse_expr(exp.y, shift + 1)
+            self.traverse_expr(exp.x, shift + 1, node)
+            self.traverse_expr(exp.y, shift + 1, node)
         elif opname in FuncProcessor.ONE_OP:
-            self.traverse_expr(exp.x, shift + 1)
+            self.traverse_expr(exp.x, shift + 1, node)
         elif opname == "tern":
-            self.traverse_expr(exp.x, shift + 1)
-            self.traverse_expr(exp.y, shift + 1)
-            self.traverse_expr(exp.z, shift + 1)
+            self.traverse_expr(exp.x, shift + 1, node)
+            self.traverse_expr(exp.y, shift + 1, node)
+            self.traverse_expr(exp.z, shift + 1, node)
         elif opname == "call":
-            self.traverse_expr(exp.x, shift + 1)
+            self.traverse_expr(exp.x, shift + 1, node)
             for i in exp.a:
-                self.traverse_args(i, shift + 1)
+                self.traverse_args(i, shift + 1, node)
         elif opname == "helper":
             if self.DEBUG:
                 print "{}[+] Helper: {}".format(" " * ((shift + 1) * TAB_SPACES), exp.helper)
@@ -205,7 +205,7 @@ class FuncProcessor(object):
         elif opname == "cast":
             if self.DEBUG:
                 print "{}[+] CastTo: {}".format(" " * ((shift + 1) * TAB_SPACES), exp.type.dstr())
-            self.traverse_expr(exp.x, shift + 1)
+            self.traverse_expr(exp.x, shift + 1, node)
         elif opname == "empty":
             pass
         elif opname == "sizeof":
@@ -216,7 +216,7 @@ class FuncProcessor(object):
             print "[-] Got unknown expr {}".format(opname)
             raise Exception('Got unknown expr {}'.format(opname))
 
-    def traverse_args(self, arg, shift):
+    def traverse_args(self, arg, shift, node):
         if type(arg) != ida_hexrays.carg_t:
             print "{}[-] Got not an argument. Fail ;[".format(" " * (shift * TAB_SPACES))
             print type(arg)
@@ -225,9 +225,9 @@ class FuncProcessor(object):
         if self.expression_pattern is not None:
             if self.expression_pattern.check(arg):
                 print "[+] Found args pattern"
-        self.process_expr(arg, shift)
+        self.process_expr(arg, shift, node)
 
-    def traverse_expr(self, exp, shift):
+    def traverse_expr(self, exp, shift, node):
         if type(exp) != ida_hexrays.cexpr_t:
             print "{}[-] Got not expression. Fail ;[".format(" " * (shift * TAB_SPACES))
             print type(exp)
@@ -236,4 +236,7 @@ class FuncProcessor(object):
         if self.expression_pattern is not None:
             if self.expression_pattern.check(exp):
                 print "[+] Found expr pattern"
-        self.process_expr(exp, shift)
+                self.expression_pattern.set_node(node)
+                if self.expression_pattern.replace_if_need() == True:
+                    return
+        self.process_expr(exp, shift, node)
