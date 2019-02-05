@@ -110,7 +110,8 @@ class FuncProcessor(object):
                 if self.pattern.check_chain(node):
                     # TODO: possible inner hiding?
                     if self.pattern.is_finished():
-                        print "[+] Found pattern chain {}".format(node.opname)
+                        if self.DEBUG:
+                            print "[+] Found pattern chain {}".format(node.opname)
                         self.pattern.set_cblk_and_node(self.curr_cblock[-1], node)
                         self.pattern.replace_if_need()
                         if not self.pattern.is_chain_observer():
@@ -123,7 +124,8 @@ class FuncProcessor(object):
                         return
             else:
                 if self.pattern.check(node):
-                    print "[+] Found pattern!"
+                    if self.DEBUG:
+                        print "[+] Found pattern!"
                     self.pattern.set_node(node)
                     if self.pattern.replace_if_need() == True:
                         return
@@ -224,7 +226,8 @@ class FuncProcessor(object):
             print "{}[+] Got {} arg".format(" " * (shift * TAB_SPACES), arg.opname)
         if self.expression_pattern is not None:
             if self.expression_pattern.check(arg):
-                print "[+] Found args pattern"
+                if self.DEBUG:
+                    print "[+] Found args pattern"
         self.process_expr(arg, shift, node)
 
     def traverse_expr(self, exp, shift, node):
@@ -235,7 +238,8 @@ class FuncProcessor(object):
             print "{}[+] Got {} expr".format(" " * (shift * TAB_SPACES), exp.opname)
         if self.expression_pattern is not None:
             if self.expression_pattern.check(exp):
-                print "[+] Found expr pattern"
+                if self.DEBUG:
+                    print "[+] Found expr pattern"
                 self.expression_pattern.set_node(node)
                 if self.expression_pattern.replace_if_need() == True:
                     return
